@@ -8,38 +8,40 @@ use Voyager;
 use Storage;
 use Artisan;
 
-class PurserDatabaseController extends BaseVoyagerDatabaseController
+class PurserController extends BaseVoyagerDatabaseController
 {
-    public function purser(Request $request) {
-        Voyager::canOrFail('browse_database');
+    public function storeDatabaseTable(Request $request) {
 
         // Process request variables
+        Voyager::canOrFail('browse_database');
         $table = json_decode($request->table);
         $table->name = strtolower($table->name);
         $table->plural_name = str_plural($table->name);
 
-        // Create new migration
+        // Create and execute migration
         Artisan::call('make:migration', ['name' => $table->plural_name, '--create' => $table->plural_name]);
-
-        // Retrieve migration filename based on the Artisan output
-        $migrationFileName = Artisan::output();
-        $migrationFileName = str_replace("Created Migration: ", "", $migrationFileName);
-        $migrationFileName = str_replace("\n", "", $migrationFileName);
-        $migrationFileName .= ".php";
-
-        // Assemble new migration file
-        $migrationFile = Storage::disk('migrations')->get($migrationFileName);
-        $migrationFile = $this->addUpFunction($table, $migrationFile);
-        $migrationFile = $this->addDownFunction($table, $migrationFile);
-        Storage::disk('migrations')->put($migrationFileName, $migrationFile);
-
-        // Execute migration
+        $migrationFileName = $this->getMigrationFileName(Artisan::output());
+        $this->addFieldsToMigration($migrationFileName, $table); 
         Artisan::call('migrate');
+
         return redirect('/admin/database');
     }
 
+    public function getMigrationFileName($artisanOutput) {
+        $migrationFileName = str_replace("Created Migration: ", "", $artisanOutput);
+        $migrationFileName = str_replace("\n", "", $migrationFileName);
+        $migrationFileName .= ".php";
+        return $migrationFileName;
+    }
 
-    public function addUpFunction($table, $migrationFile) {
+    public function addFieldsToMigration($migrationFileName, $table) {
+        $migrationFile = Storage::disk('migrations')->get($migrationFileName);
+        $migrationFile = $this->generateUpFunction($table, $migrationFile);
+        $migrationFile = $this->generateDownFunction($table, $migrationFile);
+        Storage::disk('migrations')->put($migrationFileName, $migrationFile);
+    }
+
+    public function generateUpFunction($table, $migrationFile) {
         $upFunction = "";
 
         foreach ($table->columns as $index => $column) {
@@ -53,7 +55,7 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
         return $migrationFile;
     }
 
-    public function addDownFunction($table, $migrationFile) {
+    public function generateDownFunction($table, $migrationFile) {
         $downFunction = 'Schema::dropIfExists("' . $table->plural_name . '");';
         $migrationFile = str_replace("//", $downFunction, $migrationFile);
         return $migrationFile;

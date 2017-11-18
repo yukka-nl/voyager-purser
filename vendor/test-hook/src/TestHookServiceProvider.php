@@ -15,7 +15,7 @@ class TestHookServiceProvider extends ServiceProvider
     public function boot()
     {
         // Todo: add user to middleware (?)
-        app('router')->post('/admin/database', ['uses' => '\\TestHook\\Http\\Controllers\\PurserDatabaseController@purser', 'as' => 'voyager.database.store'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);;
+        app('router')->post('/admin/database', ['uses' => '\\TestHook\\Http\\Controllers\\PurserController@storeDatabaseTable', 'as' => 'voyager.database.store'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);;
     }
 
     /**
