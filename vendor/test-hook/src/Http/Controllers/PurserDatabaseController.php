@@ -11,7 +11,6 @@ use Artisan;
 class PurserDatabaseController extends BaseVoyagerDatabaseController
 {
     public function purser(Request $request) {
-
         Voyager::canOrFail('browse_database');
         $table = json_decode($request->table);
       
