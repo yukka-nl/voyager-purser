@@ -12,78 +12,68 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
 {
     public function purser(Request $request) {
         Voyager::canOrFail('browse_database');
+
+        // Retrieve request variables
         $table = json_decode($request->table);
-      
-        $upFunction = $this->generateMigrationUpFunction($table);
-        $downFunction = $this->generateMigrationDownFunction($table);
+        $table->name = strtolower($table->name);
 
-        $this->createMigration($table, $upFunction, $downFunction);
+        // Create new migration
+        Artisan::call('make:migration', [
+            'name' => $table->name
+        ]);
 
+        // Retrieve migration filename based on the Artisan output
+        $migrationFileName = Artisan::output();
+        $migrationFileName = str_replace("Created Migration: ", "", $migrationFileName);
+        $migrationFileName = str_replace("\n", "", $migrationFileName);
+        $migrationFileName .= ".php";
+
+        // Assemble new migration file
+        $migrationFile = Storage::disk('migrations')->get($migrationFileName);
+        $migrationFile = $this->addUpFunction($table, $migrationFile);
+        $migrationFile = $this->addDownFunction($table, $migrationFile);
+        Storage::disk('migrations')->put($migrationFileName, $migrationFile);
+        
+
+        // Execute migration
         Artisan::call('migrate');
-
         return redirect('/admin/database');
     }
 
-    public function createMigration($table, $upFunction, $downFunction) {
 
-        $fileName = '2017_09_16_100000_create_'.$table->name.'_table.php';
-        $className = 'Create' . ucfirst(strtolower($table->name)) . 'Table';
-        $tableName = strtolower($table->name);
+    public function addUpFunction($table, $migrationFile) {
 
-        $migrationContent = '
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-class ' . $className .' extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
-    {
-        Schema::create("' . $tableName . '", function (Blueprint $table) {
-        	' . $upFunction . '
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::create("' . $tableName . '", function (Blueprint $table) {
-            ' . $downFunction . '
-        });
-    }
-}';
-
-        $migrationContent = trim($migrationContent);
-
-		Storage::disk('migrations')->put($fileName, $migrationContent);
-    }
-
-    public function generateMigrationUpFunction($table) {
-        $upFunction = "";
-
+        // Generate function content
+        $upFunction = 'Schema::create("' . str_plural($table->name) . '", function (Blueprint $table) {';
+        $upFunction .= "\n";
         foreach ($table->columns as $index => $column) {
             $name = $column->name;
             $type = $this->convertToMigrationTypes($column->type->name, $column);
-            $upFunction .= '$table->' . $type . '("' . $column->name . '");
-            ';
+            $upFunction .= '$table->' . $type . '("' . $column->name . '");';
+            $upFunction .= "\n";
+        }
+        $upFunction .= "\n});";
+
+        // Add function to migration file
+        $pos = strpos($migrationFile, "//");
+        if ($pos !== false) {
+            $migrationFile = substr_replace($migrationFile, $upFunction, $pos, strlen("//"));
         }
 
-        return $upFunction;
+        return $migrationFile;
     }
 
-    public function generateMigrationDownFunction($table) {
-        return 'Schema::dropIfExists("' . $table->name . '");';
+    public function addDownFunction($table, $migrationFile) {
+        // Generate function content
+        $downFunction = 'Schema::dropIfExists("' . str_plural($table->name) . '");';
+
+         // Add function to migration file
+        $pos = strrpos($migrationFile, "//");
+        if ($pos !== false) {
+            $migrationFile = substr_replace($migrationFile, $downFunction, $pos, strlen("//"));
+        }
+
+        return $migrationFile;
     }
 
     public function convertToMigrationTypes($type, $column) {
