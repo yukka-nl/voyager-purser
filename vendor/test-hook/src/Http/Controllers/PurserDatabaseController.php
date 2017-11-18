@@ -13,14 +13,13 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
     public function purser(Request $request) {
         Voyager::canOrFail('browse_database');
 
-        // Retrieve request variables
+        // Process request variables
         $table = json_decode($request->table);
         $table->name = strtolower($table->name);
+        $table->plural_name = str_plural($table->name);
 
         // Create new migration
-        Artisan::call('make:migration', [
-            'name' => $table->name
-        ]);
+        Artisan::call('make:migration', ['name' => $table->plural_name, '--create' => $table->plural_name]);
 
         // Retrieve migration filename based on the Artisan output
         $migrationFileName = Artisan::output();
@@ -33,7 +32,6 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
         $migrationFile = $this->addUpFunction($table, $migrationFile);
         $migrationFile = $this->addDownFunction($table, $migrationFile);
         Storage::disk('migrations')->put($migrationFileName, $migrationFile);
-        
 
         // Execute migration
         Artisan::call('migrate');
@@ -42,37 +40,22 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
 
 
     public function addUpFunction($table, $migrationFile) {
+        $upFunction = "";
 
-        // Generate function content
-        $upFunction = 'Schema::create("' . str_plural($table->name) . '", function (Blueprint $table) {';
-        $upFunction .= "\n";
         foreach ($table->columns as $index => $column) {
             $name = $column->name;
             $type = $this->convertToMigrationTypes($column->type->name, $column);
-            $upFunction .= '$table->' . $type . '("' . $column->name . '");';
-            $upFunction .= "\n";
-        }
-        $upFunction .= "\n});";
-
-        // Add function to migration file
-        $pos = strpos($migrationFile, "//");
-        if ($pos !== false) {
-            $migrationFile = substr_replace($migrationFile, $upFunction, $pos, strlen("//"));
+            if($index > 0) { $upFunction .= "\t\t\t"; }
+            $upFunction .= '$table->' . $type . '("' . $column->name . '");' . "\n";
         }
 
+        $migrationFile = str_replace('$' . "table->increments('id');\n", $upFunction, $migrationFile);
         return $migrationFile;
     }
 
     public function addDownFunction($table, $migrationFile) {
-        // Generate function content
-        $downFunction = 'Schema::dropIfExists("' . str_plural($table->name) . '");';
-
-         // Add function to migration file
-        $pos = strrpos($migrationFile, "//");
-        if ($pos !== false) {
-            $migrationFile = substr_replace($migrationFile, $downFunction, $pos, strlen("//"));
-        }
-
+        $downFunction = 'Schema::dropIfExists("' . $table->plural_name . '");';
+        $migrationFile = str_replace("//", $downFunction, $migrationFile);
         return $migrationFile;
     }
 
