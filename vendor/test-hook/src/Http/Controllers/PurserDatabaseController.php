@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Voyager;
 use Artisan;
 
-class PurserController extends BaseVoyagerDatabaseController
+class PurserDatabaseController extends BaseVoyagerDatabaseController
 {
     public function storeDatabaseTable(Request $request) {
         Voyager::canOrFail('browse_database');

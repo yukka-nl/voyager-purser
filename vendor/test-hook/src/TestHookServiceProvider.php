@@ -15,11 +15,11 @@ class TestHookServiceProvider extends ServiceProvider
     public function boot()
     {
         // Database actions
-        app('router')->post('/admin/database', ['uses' => '\\TestHook\\Http\\Controllers\\PurserController@storeDatabaseTable', 'as' => 'voyager.database.store'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);;
+        app('router')->post('/admin/database', ['uses' => '\\TestHook\\Http\\Controllers\\PurserDatabaseController@storeDatabaseTable', 'as' => 'voyager.database.store'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);;
 
-        app('router')->patch('/admin/database/{database}', ['uses' => '\\TestHook\\Http\\Controllers\\PurserController@updateDatabaseTable', 'as' => 'voyager.database.update'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);
+        app('router')->patch('/admin/database/{database}', ['uses' => '\\TestHook\\Http\\Controllers\\PurserDatabaseController@updateDatabaseTable', 'as' => 'voyager.database.update'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);
 
-         app('router')->put('/admin/database/{database}', ['uses' => '\\TestHook\\Http\\Controllers\\PurserController@updateDatabaseTable', 'as' => 'voyager.database.update'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);
+         app('router')->put('/admin/database/{database}', ['uses' => '\\TestHook\\Http\\Controllers\\PurserDatabaseController@updateDatabaseTable', 'as' => 'voyager.database.update'])->middleware(['web', 'TCG\Voyager\Http\Middleware\\VoyagerAdminMiddleware']);
 
          // Bread actions
 
