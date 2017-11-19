@@ -12,8 +12,9 @@ class PurserController extends BaseVoyagerDatabaseController
 {
     public function storeDatabaseTable(Request $request) {
 
-        // Process request variables
         Voyager::canOrFail('browse_database');
+
+        // Process request variables
         $table = json_decode($request->table);
         $table->name = strtolower($table->name);
         $table->plural_name = str_plural($table->name);
@@ -134,4 +135,13 @@ class PurserController extends BaseVoyagerDatabaseController
 
         return $type;
     }
+
+    public function updateDatabaseTable(Request $request) {
+
+        // Add own implementation of DatabaseUpdater class here
+
+        dd("Update database endpoint");
+        
+    }
+
 }
