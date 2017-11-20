@@ -53,10 +53,10 @@ class VoyagerMigrations {
         $upFunction = "";
 
         foreach ($table->columns as $index => $column) {
-            $name = $column->name;
-            $type = $this->voyagerTypesToMigrationTypes($column->type->name, $column);
-            if($index > 0) { $upFunction .= "\t\t\t"; }
-            $upFunction .= '$table->' . $type . '("' . $column->name . '");' . "\n";
+        	if($index > 0) { 
+        		$upFunction .= "\t\t\t"; 
+        	}
+            $upFunction .= $this->voyagerColumnToMigrationLine($column);          
         }
 
         $migrationFile = str_replace('$' . "table->increments('id');\n", $upFunction, $migrationFile);
@@ -79,7 +79,7 @@ class VoyagerMigrations {
      *
      * @return string
      */
-    public function voyagerTypesToMigrationTypes($type, $column) {
+    public function voyagerTypeToMigrationTypes($type, $column) {
 		switch ($type) {
             case "bigint":
                 $type = "bigInteger";
@@ -153,5 +153,28 @@ class VoyagerMigrations {
         return $type;
     }
 
+    public function voyagerColumnToMigrationLine($column) {
+    	$type = $this->voyagerTypeToMigrationTypes($column->type->name, $column);
+    	$modifiers = '';   	
 
+    	if($column->length) {
+    		$modifiers = '("' . $column->name . '", ' . $column->length . ')';
+    	} else {
+    		$modifiers = '("' . $column->name . '")';
+    	}
+
+    	if(!($column->notnull)) {
+    		$modifiers .= "->nullable()";
+    	}
+
+    	if($column->unsigned) {
+    		$modifiers .= "->unsigned()";
+    	}
+
+    	if(isset($column->default)) {
+    		$modifiers .= '->default("' . $column->default . '")';
+    	}
+
+    	return '$table->' . $type .  $modifiers . ';' . "\n";;
+    }
 }
