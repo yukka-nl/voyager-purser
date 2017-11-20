@@ -13,6 +13,7 @@ class VoyagerMigrations {
      * @return void
      */
 	public function createMigration($table) {
+        $table = json_decode($table);
         $table->name = strtolower($table->name);
         $table->plural_name = str_plural($table->name);
         Artisan::call('make:migration', ['name' => $table->plural_name, '--create' => $table->plural_name]);

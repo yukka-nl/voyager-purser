@@ -14,14 +14,13 @@ class PurserDatabaseController extends BaseVoyagerDatabaseController
     public function storeDatabaseTable(Request $request) {
         Voyager::canOrFail('browse_database');
 
-        (new VoyagerMigrations)->createMigration(json_decode($request->table));
+        (new VoyagerMigrations)->createMigration($request->table);
         Artisan::call('migrate');
 
         return redirect('/admin/database');
     }
 
     public function updateDatabaseTable(Request $request) {
-        // Add own implementation of DatabaseUpdater class here
+        (new PurserDatabaseUpdater)->updateTable($request->table);
     }
-
 }
